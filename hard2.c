@@ -15,7 +15,7 @@ typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr;
 
 #define BUFSIZE 1028
-#define PORT 54321
+#define PORT 12345
 #define MAX_CONNECTIONS 30
 #define SIZE 13
 
@@ -109,7 +109,7 @@ void *handler(void *pSock){
     }
 
     if ( guess == num){
-        uncrypt(key);
+        uncrypt((char *)key);
         strncpy(sBuf, "\nYou win! The flag is ", BUFSIZE-1);
         strncat(sBuf, fBuf, BUFSIZE);
         if (send(*rsock, sBuf, BUFSIZE, 0) == -1){

@@ -8,14 +8,19 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <time.h>
+
 typedef int sock;
 typedef struct sockaddr_in sockaddr_in;
 typedef struct sockaddr sockaddr;
+
 #define BUFSIZE 1028
 #define PORT 54321
 #define MAX_CONNECTIONS 30
+#define SIZE 13
 
 void *handler(void * pSock);
+static void uncrypt(char *c);
 
 int main()
 {
@@ -59,39 +64,43 @@ void *handler(void *pSock){
     char sBuf[BUFSIZE];
     char rBuf[BUFSIZE];
     char fBuf[BUFSIZE];
+    srand(time(NULL));
+    int num = rand() + rand() - rand();
+    int guess;
     memset(rBuf, '\0', BUFSIZE);
     memset(sBuf, '\0', BUFSIZE);
     memset(fBuf, '\0', BUFSIZE);
-    strncpy(sBuf, "Enter the super secret key: ", BUFSIZE);
+    strncpy(sBuf, "I'm thinking of a number... Take a guess: ", BUFSIZE);
     if (send(*rsock, sBuf, strlen(sBuf), 0) == -1){
         perror("send");
         close(*rsock);
         pthread_exit(NULL);
     }
-    unsigned char key[19];
-    key[0] = 72;
-    key[1] = 65;
-    key[2] = 67;
-    key[4] = 75;
-    key[5] = 32;
-    key[6] = 84;
-    key[7] = 72;
-    key[8] = 69;
-    key[9] = 32;
-    key[10] = 71;
-    key[11] = 73;
-    key[12] = 66;
-    key[13] = 83;
-    key[14] = 79;
-    key[15] = 78;
-    key[16] = 11;
+    /*xor by 69*/
+    unsigned char key[] = {
+     0x17,
+     0x6,
+     0x76,
+     0x68,
+     0xD,
+     0x4,
+     0x1D,
+     0x1,
+     0x68,
+     0x73,
+     0x73,
+     0x73,
+     0x73,
+     0x00
+    };
 
     if (recv(*rsock, rBuf, BUFSIZE, 0) == -1){
         perror("recv");
         close(*rsock);
         pthread_exit(NULL);
     }
-    key[sizeof(key)-1] = '\0';
+    guess = atoi(rBuf);
+
     if ((file = fopen("flag2.txt", "r")) != NULL){
         fgets(fBuf, BUFSIZE, file);
         fclose(file);
@@ -99,7 +108,8 @@ void *handler(void *pSock){
         printf("Error reading from file");
     }
 
-    if (strstr(rBuf, (char *)key) != NULL){
+    if ( guess == num){
+        uncrypt(key);
         strncpy(sBuf, "\nYou win! The flag is ", BUFSIZE-1);
         strncat(sBuf, fBuf, BUFSIZE);
         if (send(*rsock, sBuf, BUFSIZE, 0) == -1){
@@ -108,7 +118,7 @@ void *handler(void *pSock){
             pthread_exit(NULL);
         }
     } else {
-        strncpy(sBuf, "Better luck next time, kid\n", BUFSIZE);
+        strncpy(sBuf, "NAH\n", BUFSIZE);
         if (send(*rsock, sBuf, strlen(sBuf), 0) == -1){
             perror("send");
             close(*rsock);
@@ -117,4 +127,11 @@ void *handler(void *pSock){
     }
     close(*rsock);
     pthread_exit(NULL);
+}
+
+
+static void uncrypt(char *c){
+    for (int i=0;i<SIZE;++i){
+        c[i] ^= 69;
+    }
 }

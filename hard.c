@@ -64,7 +64,7 @@ void *handler(void *pSock){
     char sBuf[BUFSIZE];
     char rBuf[BUFSIZE];
     char fBuf[BUFSIZE];
-    srand(time(NULL));
+    srand(1);
     int num = rand() + rand() - rand();
     int guess;
     memset(rBuf, '\0', BUFSIZE);

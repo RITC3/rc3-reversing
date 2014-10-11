@@ -16,6 +16,7 @@ typedef struct sockaddr sockaddr;
 #define MAX_CONNECTIONS 30
 
 void *handler(void * pSock);
+pthread_mutex_t tmutex;
 
 int main()
 {
@@ -43,10 +44,17 @@ int main()
     }
 
     socklen_t rsin_len = sizeof(rsin);
+    if ( pthread_mutex_init(&tmutex, NULL) == 0 ){
+        perror("mutex create failed");
+        close(lsock);
+        return 1;
+    }
 
     while (1){
         rsock = accept(lsock, (sockaddr *)&rsin, &rsin_len);
+        pthread_mutex_lock(&tmutex);
         pthread_create(&pid, NULL, handler, (void *)&rsock);
+        pthread_mutex_unlock(&tmutex);
     }
 
     return 0;
@@ -63,11 +71,15 @@ void *handler(void *pSock){
     memset(sBuf, '\0', BUFSIZE);
     memset(fBuf, '\0', BUFSIZE);
     strncpy(sBuf, "Enter the super secret key: ", BUFSIZE);
+    pthread_mutex_lock(&tmutex);
     if (send(*rsock, sBuf, strlen(sBuf), 0) == -1){
         perror("send");
         close(*rsock);
+        pthread_mutex_unlock(&tmutex);
         pthread_exit(NULL);
     }
+    pthread_mutex_unlock(&tmutex);
+
     unsigned char key[19];
     key[0] = 72;
     key[1] = 65;
@@ -91,20 +103,23 @@ void *handler(void *pSock){
         close(*rsock);
         pthread_exit(NULL);
     }
-    key[sizeof(key)-1] = '\0';
-    if ((file = fopen("flag2.txt", "r")) != NULL){
-        fgets(fBuf, BUFSIZE, file);
-        fclose(file);
-    } else {
-        printf("Error reading from file");
-    }
 
+    key[sizeof(key)-1] = '\0';
+
+    pthread_mutex_lock(&tmutex);
     if (strstr(rBuf, (char *)key) != NULL){
+        if ((file = fopen("flag2.txt", "r")) != NULL){
+            fgets(fBuf, BUFSIZE, file);
+            fclose(file);
+        } else {
+            printf("Error reading from file");
+        }
         strncpy(sBuf, "\nYou win! The flag is ", BUFSIZE-1);
         strncat(sBuf, fBuf, BUFSIZE);
         if (send(*rsock, sBuf, BUFSIZE, 0) == -1){
             perror("send");
             close(*rsock);
+            pthread_mutex_unlock(&tmutex);
             pthread_exit(NULL);
         }
     } else {
@@ -112,9 +127,12 @@ void *handler(void *pSock){
         if (send(*rsock, sBuf, strlen(sBuf), 0) == -1){
             perror("send");
             close(*rsock);
+            pthread_mutex_unlock(&tmutex);
             pthread_exit(NULL);
         }
     }
+
+    pthread_mutex_unlock(&tmutex);
     close(*rsock);
     pthread_exit(NULL);
 }

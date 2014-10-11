@@ -22,6 +22,8 @@ typedef struct sockaddr sockaddr;
 void *handler(void * pSock);
 static void uncrypt(char *c);
 
+pthread_mutex_t tmutex;
+
 int main()
 {
     sock rsock, lsock;
@@ -48,10 +50,17 @@ int main()
     }
 
     socklen_t rsin_len = sizeof(rsin);
+    if ( pthread_mutex_init(&tmutex, NULL) == 0 ){
+        perror("mutex init failed");
+        close(lsock);
+        return 1;
+    }
 
     while (1){
         rsock = accept(lsock, (sockaddr *)&rsin, &rsin_len);
+        pthread_mutex_lock(&tmutex);
         pthread_create(&pid, NULL, handler, (void *)&rsock);
+        pthread_mutex_lock(&tmutex);
     }
 
     return 0;
@@ -71,11 +80,16 @@ void *handler(void *pSock){
     memset(sBuf, '\0', BUFSIZE);
     memset(fBuf, '\0', BUFSIZE);
     strncpy(sBuf, "I'm thinking of a number... Take a guess: ", BUFSIZE);
+
+    pthread_mutex_lock(&tmutex);
     if (send(*rsock, sBuf, strlen(sBuf), 0) == -1){
         perror("send");
         close(*rsock);
+        pthread_mutex_unlock(&tmutex);
         pthread_exit(NULL);
     }
+    pthread_mutex_unlock(&tmutex);
+
     /*xor by 69*/
     unsigned char key[] = {
      0x17,
@@ -101,20 +115,21 @@ void *handler(void *pSock){
     }
     guess = atoi(rBuf);
 
-    if ((file = fopen("flag2.txt", "r")) != NULL){
-        fgets(fBuf, BUFSIZE, file);
-        fclose(file);
-    } else {
-        printf("Error reading from file");
-    }
-
-    if ( guess == num){
+    pthread_mutex_lock(&tmutex);
+    if (guess == num){
+        if ((file = fopen("flag2.txt", "r")) != NULL){
+            fgets(fBuf, BUFSIZE, file);
+            fclose(file);
+        } else {
+            printf("Error reading from file");
+        }
         uncrypt((char *)key);
         strncpy(sBuf, "\nYou win! The flag is ", BUFSIZE-1);
         strncat(sBuf, fBuf, BUFSIZE);
         if (send(*rsock, sBuf, BUFSIZE, 0) == -1){
             perror("send");
             close(*rsock);
+            pthread_mutex_unlock(&tmutex);
             pthread_exit(NULL);
         }
     } else {
@@ -122,9 +137,12 @@ void *handler(void *pSock){
         if (send(*rsock, sBuf, strlen(sBuf), 0) == -1){
             perror("send");
             close(*rsock);
+            pthread_mutex_unlock(&tmutex);
             pthread_exit(NULL);
         }
     }
+
+    pthread_mutex_unlock(&tmutex);
     close(*rsock);
     pthread_exit(NULL);
 }

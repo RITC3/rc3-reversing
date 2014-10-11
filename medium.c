@@ -80,23 +80,23 @@ void *handler(void *pSock){
     }
     pthread_mutex_unlock(&tmutex);
 
-    unsigned char key[19];
+    unsigned char key[17];
     key[0] = 72;
     key[1] = 65;
     key[2] = 67;
-    key[4] = 75;
-    key[5] = 32;
-    key[6] = 84;
-    key[7] = 72;
-    key[8] = 69;
-    key[9] = 32;
-    key[10] = 71;
-    key[11] = 73;
-    key[12] = 66;
-    key[13] = 83;
-    key[14] = 79;
-    key[15] = 78;
-    key[16] = 11;
+    key[3] = 75;
+    key[4] = 32;
+    key[5] = 84;
+    key[6] = 72;
+    key[7] = 69;
+    key[8] = 32;
+    key[9] = 71;
+    key[10] = 73;
+    key[11] = 66;
+    key[12] = 83;
+    key[13] = 79;
+    key[14] = 78;
+    key[15] = 11;
 
     if (recv(*rsock, rBuf, BUFSIZE, 0) == -1){
         perror("recv");

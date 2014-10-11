@@ -60,7 +60,7 @@ int main()
         rsock = accept(lsock, (sockaddr *)&rsin, &rsin_len);
         pthread_mutex_lock(&tmutex);
         pthread_create(&pid, NULL, handler, (void *)&rsock);
-        pthread_mutex_lock(&tmutex);
+        pthread_mutex_unlock(&tmutex);
     }
 
     return 0;

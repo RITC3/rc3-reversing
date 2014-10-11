@@ -50,7 +50,7 @@ int main()
     }
 
     socklen_t rsin_len = sizeof(rsin);
-    if ( pthread_mutex_init(&tmutex, NULL) == 0 ){
+    if ( pthread_mutex_init(&tmutex, NULL) != 0 ){
         perror("mutex init failed");
         close(lsock);
         return 1;

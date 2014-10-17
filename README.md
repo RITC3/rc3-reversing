@@ -72,11 +72,55 @@ The instruction:<br>
 Shows something being loaded from the ebp register minus 0xc28<br>
 We can look there and find the key!<br>
 
-Flag: RC3-WUMB-0055<br>
+**Flag: RC3-WUMB-0055**<br>
 
 HARD
 ----
 There were two flags in this one.<br>
 The key for the first flag is understanding how random number generation works on computers.<br>
 In the disassembly we can see that srand is seeded off of 1 every time.<br>
-The rest is coming soon!<br>
+<pre>
+$ objdump -S hard
+...
+ 8048c20:       c7 04 24 01 00 00 00    movl   $0x1,(%esp)
+ 8048c27:       e8 e4 fb ff ff          call   8048810 <srand@plt>
+ 8048c2c:       e8 4f fc ff ff          call   8048880 <rand@plt>
+ 8048c31:       89 c3                   mov    %eax,%ebx
+ 8048c33:       e8 48 fc ff ff          call   8048880 <rand@plt>
+ 8048c38:       01 c3                   add    %eax,%ebx
+ 8048c3a:       e8 41 fc ff ff          call   8048880 <rand@plt>
+ 8048c3f:       29 c3                   sub    %eax,%ebx
+...
+</pre>
+Additionally, we can see that rand is used 3 times.<br>
+The first srand is moved to ebx.<br>
+The second is added to ebx.<br>
+And then the third is subtracted from ebx.<br>
+So: srand(1); num = rand() + rand() - rand() is the number it is looking for.<br>
+The srand.c program was a hint. Change it to output the solution.<br>
+<pre>
+#include <stdio.h>
+#include <stdlib.h>
+
+int main(int argc, char *argv[])
+{
+    srand(atoi(argv[1]));
+    printf("%d\n", rand() + rand() - rand());
+    return 0;
+}
+</pre>
+<pre>
+$ gcc -o srand srand.c
+$ ./srand 1
+969527492
+</pre>
+So to solve:<br>
+<pre>
+$ ./srand 1 | nc reverseme.havefuninside.me 54322
+It may be useful to know that this program is running on Ubuntu 14.04 x32.
+The executables can be downloaded from this server. Visit in web browser
+I'm thinking of a number... Take a guess:
+You win! The flag is RC3-REAL-HAXX
+</pre>
+
+Flag 1: **RC3-REAL-HAXX**
